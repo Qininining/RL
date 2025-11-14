@@ -10,8 +10,10 @@ import yaml
 from peak_seeking.config import ProjectConfig, parse_config_from_dict
 from peak_seeking.training.q_learning import train_q_learning
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-DEFAULT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "configs" / "peak_seeking.yaml"
+DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "peak_seeking.yaml"
+DEFAULT_RUNS_DIR = PROJECT_ROOT / "runs"  # <--- 新增这行
 
 
 def parse_args() -> argparse.Namespace:
@@ -36,7 +38,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="runs",
+        default=str(DEFAULT_RUNS_DIR),
         help="Directory to store artifacts such as the learned Q-table.",
     )
     parser.add_argument(
