@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 from pathlib import Path
 
 import yaml
@@ -74,7 +75,13 @@ def main() -> None:
     args = parse_args()
     cfg = load_config(args.config)
     cfg = apply_overrides(cfg, args)
-    result = train_q_learning(cfg.env, cfg.training, output_dir=Path(args.output_dir))
+
+    # Create a unique output directory for this run to avoid overwriting
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_name = f"ep{cfg.training.episodes}_{timestamp}"
+    output_dir = Path(args.output_dir) / run_name
+
+    result = train_q_learning(cfg.env, cfg.training, output_dir=output_dir)
     print(f"Training complete. Success rate: {result.success_rate:.2%}. Model saved to {result.model_path}.")
 
 

@@ -26,7 +26,7 @@ def create_env(env_cfg: EnvironmentConfig, *, render_mode: str | None = None) ->
         max_steps=env_cfg.max_steps,
         threshold_ratio=env_cfg.threshold_ratio,
         peak_value_range=(env_cfg.peak_value_min, env_cfg.peak_value_max),
-        render_mode=render_mode or env_cfg.render_mode,
+        render_mode=render_mode,
     )
 
 
@@ -42,7 +42,7 @@ def train_q_learning(
     *,
     output_dir: Path | None = None,
 ) -> TrainingResult:
-    env = create_env(env_cfg)
+    env = create_env(env_cfg, render_mode=train_cfg.render_mode)
     q_table = np.zeros((env_cfg.size, env_cfg.size, env.action_space.n), dtype=np.float32)
     epsilon = train_cfg.epsilon_start
     rng = np.random.default_rng(train_cfg.seed)

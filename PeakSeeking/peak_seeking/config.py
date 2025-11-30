@@ -13,7 +13,7 @@ class EnvironmentConfig:
     threshold_ratio: float = 0.98
     peak_value_min: float = 5.0
     peak_value_max: float = 10.0
-    render_mode: Optional[str] = None
+    # render_mode is now handled in TrainingConfig and EvaluationConfig
 
 
 @dataclass
@@ -27,17 +27,26 @@ class TrainingConfig:
     seed: Optional[int] = 42
     eval_interval: int = 20
     log_interval: int = 10
+    render_mode: Optional[str] = None
+
+
+@dataclass
+class EvaluationConfig:
+    episodes: int = 5
+    render_mode: Optional[str] = "human"
 
 
 @dataclass
 class ProjectConfig:
     env: EnvironmentConfig
     training: TrainingConfig
+    evaluation: EvaluationConfig
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "env": vars(self.env),
             "training": vars(self.training),
+            "evaluation": vars(self.evaluation),
         }
 
 
@@ -47,10 +56,18 @@ def parse_config_from_dict(data: Mapping[str, Any] | None) -> ProjectConfig:
     payload: Mapping[str, Any] = data or {}
     env_data = payload.get("env", {})
     training_data = payload.get("training", {})
+    evaluation_data = payload.get("evaluation", {})
+
+    # Remove render_mode from env_data if it exists, to avoid error if we remove it from EnvironmentConfig definition
+    # But wait, I should remove it from EnvironmentConfig definition if I want to be clean.
+    # Or I can just ignore it.
+    if "render_mode" in env_data:
+        del env_data["render_mode"]
 
     env_cfg = EnvironmentConfig(**env_data)
     training_cfg = TrainingConfig(**training_data)
-    return ProjectConfig(env=env_cfg, training=training_cfg)
+    evaluation_cfg = EvaluationConfig(**evaluation_data)
+    return ProjectConfig(env=env_cfg, training=training_cfg, evaluation=evaluation_cfg)
 
 
 __all__ = [

@@ -115,6 +115,10 @@ class PeakSeekingEnv(gym.Env):
     def _get_obs(self) -> np.ndarray:
         return self.agent_pos.copy()
 
+    def render(self):
+        if self.render_mode == "human":
+            return self._render_frame()
+
     def _render_frame(self) -> None:
         if self.height_map is None:
             return
