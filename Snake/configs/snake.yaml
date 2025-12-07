@@ -1,0 +1,19 @@
+env:
+  size: 8
+  max_steps: 1000
+
+training:
+  episodes: 200000
+  learning_rate: 0.1
+  discount_factor: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.01
+  epsilon_decay: 0.9995
+  seed: 42
+  eval_interval: 500
+  log_interval: 500
+  render_mode: null
+
+evaluation:
+  episodes: 5
+  render_mode: "human"
