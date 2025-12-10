@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import List
 
 import numpy as np
 
 from peak_seeking.config import EnvironmentConfig, TrainingConfig
 from peak_seeking.envs.peak_seeking_env import PeakSeekingEnv
+from peak_seeking.training.q_learning_core import QLearningAgent
 
 
 @dataclass
@@ -30,12 +31,6 @@ def create_env(env_cfg: EnvironmentConfig, *, render_mode: str | None = None) ->
     )
 
 
-def epsilon_greedy_action(q_values: np.ndarray, epsilon: float, action_space_n: int, rng: np.random.Generator) -> int:
-    if rng.random() < epsilon:
-        return int(rng.integers(0, action_space_n))
-    return int(np.argmax(q_values))
-
-
 def train_q_learning(
     env_cfg: EnvironmentConfig,
     train_cfg: TrainingConfig,
@@ -43,9 +38,17 @@ def train_q_learning(
     output_dir: Path | None = None,
 ) -> TrainingResult:
     env = create_env(env_cfg, render_mode=train_cfg.render_mode)
-    q_table = np.zeros((env_cfg.size, env_cfg.size, env.action_space.n), dtype=np.float32)
+    
+    # Initialize generic agent
+    agent = QLearningAgent(
+        observation_shape=(env_cfg.size, env_cfg.size),
+        action_space_n=env.action_space.n,
+        learning_rate=train_cfg.learning_rate,
+        discount_factor=train_cfg.discount_factor,
+        seed=train_cfg.seed,
+    )
+    
     epsilon = train_cfg.epsilon_start
-    rng = np.random.default_rng(train_cfg.seed)
     rewards: List[float] = []
     success_counter = 0
 
@@ -60,14 +63,11 @@ def train_q_learning(
         total_reward = 0.0
 
         for _ in range(env_cfg.max_steps):
-            action = epsilon_greedy_action(q_table[state], epsilon, env.action_space.n, rng)
+            action = agent.get_action(state, epsilon)
             next_obs, reward, terminated, truncated, _ = env.step(action)
             next_state = tuple(int(x) for x in next_obs)
 
-            best_next = np.max(q_table[next_state])
-            td_target = reward + train_cfg.discount_factor * best_next
-            td_error = td_target - q_table[state][action]
-            q_table[state][action] += train_cfg.learning_rate * td_error
+            agent.update(state, action, reward, next_state, terminated)
 
             state = next_state
             total_reward += reward
@@ -88,13 +88,13 @@ def train_q_learning(
                 f"epsilon={epsilon:.3f} | successes={success_counter}/{episode + 1}"
             )
 
-    np.save(model_path, q_table)
+    agent.save(model_path)
     env.close()
 
     success_rate = success_counter / max(train_cfg.episodes, 1)
     return TrainingResult(
         rewards=rewards,
-        q_table=q_table,
+        q_table=agent.q_table,
         success_rate=success_rate,
         model_path=model_path,
     )
